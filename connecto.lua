@@ -26,10 +26,11 @@ local focus = { x = 0, y = 0 }
 local script_file = "connect_device_to_jack.sh"
 local config_file = "connecto/last-config.data"
 
-local array_of_devices = {"None"}
+local array_of_inputs = {"Default"}
+local array_of_outputs = {"Default"}
 local array_of_srate = {"11025", "22050", "44100", "48000", "96000"}
-local input_device = "None"
-local output_device = "None"
+local input_device = "Default"
+local output_device = "Default"
 local input_srate = "44100"
 local output_srate = "44100"
 
@@ -54,31 +55,48 @@ function init()
   redraw()
 end
 
-
-function refresh_list_of_devices()
-	array_of_devices = {"None"}
-	local device_index = 0;
-	-- list all connected sound devices
-	local get_devices_list = io.popen('cat /proc/asound/cards')
+function valid_device_name(devices_list)
+	local devices = {}
 	-- read line by line
 	repeat
-		local raw_list = get_devices_list:read("*l")
+		local raw_list = devices_list:read("*l")
 		-- retrieve name in []
 		if raw_list then 
-			local device_name = string.match(raw_list, ('%[(%w+).*%]'))
-			if not (device_name == "sndrpimonome" or device_name == nil) then
-				table.insert(array_of_devices, device_name)
+			-- local device_name = string.match(raw_list, ('%[(%w+).*%]'))
+			local words = {}
+			for word in raw_list:gmatch("%S+") do table.insert(words, word) end
+			if (words[1] == "card") then 
+				if not (words[3] == "sndrpimonome" or words[3] == nil) then
+					table.insert(devices, words[3])
+				end
 			end
 		end
 	until not raw_list
-	for i=1, #array_of_devices do
-		print('Device: '..i..' > '..array_of_devices[i])
+	return devices
+end
+
+
+
+function refresh_list_of_devices()
+	local device_index = 0;
+	-- list all connected sound devices
+	local get_inputs_list = io.popen('arecord -l')
+	local get_outputs_list = io.popen('aplay -l')
+	array_of_inputs = valid_device_name(get_inputs_list)
+	table.insert(array_of_inputs, 1, "Default")
+	array_of_outputs = valid_device_name(get_outputs_list)
+	table.insert(array_of_outputs, 1, "Default")
+	for i=1, #array_of_inputs do
+		print('Connecto: Input Device: '..i..' > '..array_of_inputs[i])
+	end
+	for i=1, #array_of_outputs do
+		print('Connecto: Output Device: '..i..' > '..array_of_outputs[i])
 	end
 end 
 
 
 function save_config()
-	print("_path.data: ".._path.data)
+	print("Connecto: _path.data: ".._path.data)
 	local file = io.open(_path.data .. config_file, "w+")
 	io.output(file)
   io.write("v1" .. "\n")
@@ -93,7 +111,7 @@ end
 function load_config()
   local file = io.open(_path.data .. config_file, "r")
   if file then
-    print("datafile found")
+    print("Connecto: datafile found")
     io.input(file)
     if io.read() == "v1" then
     	desired_input_device 	= io.read()
@@ -104,15 +122,15 @@ function load_config()
     io.close(file)
   end
   -- check if everything is fine
-  local id = getindex(array_of_devices, desired_input_device)
+  local id = getindex(array_of_inputs, desired_input_device)
   if (id > -1) then 
   	input_device_index = id
-  	input_device = array_of_devices[input_device_index]
+  	input_device = array_of_inputs[input_device_index]
   end
-  local id = getindex(array_of_devices, desired_output_device)
+  local id = getindex(array_of_outputs, desired_output_device)
   if (id > -1) then 
   	output_device_index = id
-  	output_device = array_of_devices[output_device_index]
+  	output_device = array_of_outputs[output_device_index]
   end
   local id = getindex(array_of_srate, desired_input_srate)
   if (id > -1) then 
@@ -124,8 +142,8 @@ function load_config()
   	output_srate_index = id
   	output_srate = array_of_srate[output_srate_index]
   end
-  print ('Output: '..output_device_index..':'..output_device..' '..output_srate_index..':'..output_srate)
-	print ('Input: '..input_device_index..':'..input_device..' '..input_srate_index..':'..input_srate)
+  print ('Connecto: Output: '..output_device_index..':'..output_device..' '..output_srate_index..':'..output_srate)
+	print ('Connecto: Input: '..input_device_index..':'..input_device..' '..input_srate_index..':'..input_srate)
 end
 
 
@@ -152,17 +170,17 @@ function create_script()
 	script:write("killall alsa_in \n")
 	script:write("killall alsa_out \n")
 	script:write("sleep 1 \n")
-	if not (input_device == "None") then
+	if not (input_device == "Default") then
 		script:write("alsa_in -d hw:CARD=" .. input_device .." -r " .. input_srate .." & \n")
 	end
-	if not (output_device == "None") then
+	if not (output_device == "Default") then
 		script:write("alsa_out -d hw:CARD=" .. output_device .." -r " .. output_srate .." & \n")
 	end
 	script:write("sleep 1 \n")
-	if not (input_device == "None") then
+	if not (input_device == "Default") then
 		script:write("jack_connect alsa_in:capture_1 softcut:input_1 \njack_connect alsa_in:capture_2 softcut:input_2 \njack_connect alsa_in:capture_1 crone:input_1 \njack_connect alsa_in:capture_2 crone:input_2 \n")
 	end
-	if not (output_device == "None") then
+	if not (output_device == "Default") then
 		script:write("jack_connect softcut:output_1 alsa_out:playback_1 \njack_connect softcut:output_2 alsa_out:playback_2 \njack_connect crone:output_1 alsa_out:playback_1 \njack_connect crone:output_2 alsa_out:playback_2 \n")
 	end
 	script:close()
@@ -177,8 +195,8 @@ function enc(id,delta)
 		-- output device
 	  elseif id == 3 then
 	  	if (destination == 0) then -- device destination
-	  		output_device_index = util.clamp(output_device_index + delta, 1, #(array_of_devices)) 
-	  		output_device = array_of_devices[output_device_index]
+	  		output_device_index = util.clamp(output_device_index + delta, 1, #(array_of_outputs)) 
+	  		output_device = array_of_outputs[output_device_index]
 	  	else -- srate destination
 	  		output_srate_index = util.clamp(output_srate_index + delta, 1, #(array_of_srate)) 
 	  		output_srate = array_of_srate[output_srate_index]
@@ -186,8 +204,8 @@ function enc(id,delta)
 	  -- input device
 	  elseif id == 2 then
 	  	if (destination == 0) then -- device destination
-	  		input_device_index = util.clamp(input_device_index + delta, 1, #(array_of_devices)) 
-	  		input_device = array_of_devices[input_device_index]
+	  		input_device_index = util.clamp(input_device_index + delta, 1, #(array_of_inputs)) 
+	  		input_device = array_of_inputs[input_device_index]
 	  	else -- srate destination
 	  		input_srate_index = util.clamp(input_srate_index + delta, 1, #(array_of_srate)) 
 	  		input_srate = array_of_srate[input_srate_index]
@@ -219,6 +237,7 @@ function redraw()
   if (connecting_status == 0) then
   	draw_text()
   	draw_frame()
+  	draw_info_connection()
   else
   	draw_connect_animation()
   end
@@ -232,6 +251,7 @@ local x3 = 3*viewport.width/4
 local y1 = viewport.height/2 - 10
 local y2 = viewport.height/2
 local y3 = viewport.height/2 + 10
+local y4 = viewport.height/2 + 25
 local level_min = 3
 
 function draw_text()
@@ -251,6 +271,15 @@ function draw_text()
 	screen.text_center(input_srate..'Hz')
 	screen.move(x3, y3)
 	screen.text_center(output_srate..'Hz')
+end
+
+function draw_info_connection()
+	local text = "long press k1 to connect"
+	screen.font_size(8)
+	screen.level(1)
+	screen.move(viewport.width/2, viewport.height/2 + 25)
+	local index = ((viewport.frame / 2.) % #text) + 1
+	screen.text_center(capitalize(text,index))
 end
 
 
@@ -290,3 +319,16 @@ function getindex(array, name)
 	return result
 end
 
+-- thanks chagpt
+function capitalize(str, index)
+  local t = {}
+  for i = 1, #str do
+    local c = str:sub(i,i)
+    if i == index then
+      t[i] = c:upper()
+    else
+      t[i] = c
+    end
+  end
+  return table.concat(t)
+end
