@@ -1,11 +1,11 @@
 # Connecto
-![](./lib/connecto-screenshot.jpg | width=100)
+![](./lib/connecto-screenshot.jpg)
 
 # What is Connecto
 Connecto is a script that allows [Norns](https://monome.org/docs/norns/) to connect its audio inputs and outputs to USB audio devices. 
 
 # How to use
-==Connect USB audio devices before starting Connecto==
+**Connect USB audio devices before starting Connecto**
 At startup, Connecto automatically recalls previous connections if the same audio devices are connected.
 
 - K1/E3: to select whether the modification affects the device or the sampling rate.
