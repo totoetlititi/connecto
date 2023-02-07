@@ -1,5 +1,5 @@
 # *Connecto*
-![connecto-screenshot.jpg](lib/connecto-screenshot.jpg | width=100)
+![](lib/connecto-screenshot.jpg | width=100)
 
 # What is *Connecto*
 *Connecto* is a script that allows [Norns](https://monome.org/docs/norns/) to connect its audio inputs and outputs to USB audio devices. 
