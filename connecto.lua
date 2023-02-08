@@ -181,7 +181,7 @@ function create_script()
 		script:write("jack_connect alsa_in:capture_1 softcut:input_1 \njack_connect alsa_in:capture_2 softcut:input_2 \njack_connect alsa_in:capture_1 crone:input_1 \njack_connect alsa_in:capture_2 crone:input_2 \n")
 	end
 	if not (output_device == "Default") then
-		script:write("jack_connect softcut:output_1 alsa_out:playback_1 \njack_connect softcut:output_2 alsa_out:playback_2 \njack_connect crone:output_1 alsa_out:playback_1 \njack_connect crone:output_2 alsa_out:playback_2 \n")
+		script:write("jack_connect crone:output_1 alsa_out:playback_1 \njack_connect crone:output_2 alsa_out:playback_2 \n")
 	end
 	script:close()
 end
